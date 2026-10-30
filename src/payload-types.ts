@@ -157,6 +157,10 @@ export interface User {
 export interface Media {
   id: number;
   alt: string;
+  caption?: string | null;
+  credit?: string | null;
+  sourceUrl?: string | null;
+  uploadedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -309,6 +313,10 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  caption?: T;
+  credit?: T;
+  sourceUrl?: T;
+  uploadedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

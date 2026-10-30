@@ -34,6 +34,9 @@ export default buildConfig({
     push: false,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
+  upload: {
+    limits: { fileSize: 5_000_000 },
+  },
   sharp,
   plugins: [],
 })
