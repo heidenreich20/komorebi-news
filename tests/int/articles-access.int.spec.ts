@@ -187,13 +187,15 @@ describe('Articles', () => {
 
   it('lets a journalist edit their article again after it is rejected', async () => {
     const mine = await make(journalist, 'Devuelta por el editor')
-    await payload.update({
-      collection: 'articles',
-      id: mine.id,
-      data: { editorialStatus: 'rejected' },
-      user: editor,
-      overrideAccess: false,
-    })
+    for (const status of ['in_review', 'rejected'] as const) {
+      await payload.update({
+        collection: 'articles',
+        id: mine.id,
+        data: { editorialStatus: status },
+        user: editor,
+        overrideAccess: false,
+      })
+    }
     const updated = await payload.update({
       collection: 'articles',
       id: mine.id,

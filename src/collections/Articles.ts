@@ -1,7 +1,15 @@
 import type { CollectionConfig, Where } from 'payload'
 
-import { hasRole, isAdmin, isAdminOrEditor, isAdminOrEditorField, isStaff } from '@/access'
+import {
+  hasRole,
+  isAdmin,
+  isAdminOrEditor,
+  isAdminOrEditorField,
+  isStaff,
+  isStaffField,
+} from '@/access'
 import { slugField } from '@/fields/slug'
+import { enforceStatusTransitions } from '@/hooks/enforceStatusTransitions'
 
 export const publiclyVisible = (): Where => ({
   and: [
@@ -47,6 +55,7 @@ export const Articles: CollectionConfig = {
     delete: isAdmin,
     readVersions: isAdminOrEditor,
   },
+  hooks: { beforeValidate: [enforceStatusTransitions] },
   fields: [
     { name: 'title', type: 'text', required: true },
     slugField('title'),
@@ -75,7 +84,7 @@ export const Articles: CollectionConfig = {
         { label: 'Rechazado', value: 'rejected' },
         { label: 'Archivado', value: 'archived' },
       ],
-      access: { create: isAdminOrEditorField, update: isAdminOrEditorField },
+      access: { create: isAdminOrEditorField, update: isStaffField },
       admin: { position: 'sidebar' },
     },
     {

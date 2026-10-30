@@ -34,3 +34,6 @@ export const adminOrFirstUser: FieldAccess = async ({ req }) =>
   hasRole(req.user, 'admin') || (!req.user && (await noUsersYet(req)))
 
 export const isAdminOrEditorField: FieldAccess = ({ req }) => hasRole(req.user, 'admin', 'editor')
+
+export const isStaffField: FieldAccess = ({ req }) =>
+  hasRole(req.user, 'admin', 'editor', 'journalist')
