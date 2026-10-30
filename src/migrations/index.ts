@@ -4,6 +4,7 @@ import * as migration_20261030_031525_categories from './20261030_031525_categor
 import * as migration_20261030_035148_tags from './20261030_035148_tags';
 import * as migration_20261030_035731_media_metadata from './20261030_035731_media_metadata';
 import * as migration_20261030_041127_authors from './20261030_041127_authors';
+import * as migration_20261030_211826_articles from './20261030_211826_articles';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20261030_041127_authors.up,
     down: migration_20261030_041127_authors.down,
-    name: '20261030_041127_authors'
+    name: '20261030_041127_authors',
+  },
+  {
+    up: migration_20261030_211826_articles.up,
+    down: migration_20261030_211826_articles.down,
+    name: '20261030_211826_articles'
   },
 ];

@@ -32,3 +32,5 @@ export const noUsersYet = async (req: PayloadRequest): Promise<boolean> => {
 // Field access for `role` and `active` on create: admins, or nobody signed in while no users exist.
 export const adminOrFirstUser: FieldAccess = async ({ req }) =>
   hasRole(req.user, 'admin') || (!req.user && (await noUsersYet(req)))
+
+export const isAdminOrEditorField: FieldAccess = ({ req }) => hasRole(req.user, 'admin', 'editor')
