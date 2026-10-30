@@ -10,6 +10,7 @@ import {
 } from '@/access'
 import { slugField } from '@/fields/slug'
 import { enforceStatusTransitions } from '@/hooks/enforceStatusTransitions'
+import { enforcePublicationRules } from '@/hooks/enforcePublicationRules'
 
 export const publiclyVisible = (): Where => ({
   and: [
@@ -55,7 +56,7 @@ export const Articles: CollectionConfig = {
     delete: isAdmin,
     readVersions: isAdminOrEditor,
   },
-  hooks: { beforeValidate: [enforceStatusTransitions] },
+  hooks: { beforeValidate: [enforceStatusTransitions, enforcePublicationRules] },
   fields: [
     { name: 'title', type: 'text', required: true },
     slugField('title'),

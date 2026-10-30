@@ -3,7 +3,9 @@ import { getPayload, type Payload } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
-import type { Article, Author, Category, User } from '@/payload-types'
+import type { Article, Author, Category, Media, User } from '@/payload-types'
+
+import { lexicalBody, pngBytes } from '../helpers/articleFixtures'
 
 const password = 'test-password-123'
 
@@ -14,6 +16,7 @@ let editor: User
 let journalist: User
 let category: Category
 let author: Author
+let media: Media
 
 const makeUser = (email: string, name: string, role: 'admin' | 'editor' | 'journalist') =>
   payload.create({ collection: 'users', data: { email, password, name, role } })
@@ -21,7 +24,15 @@ const makeUser = (email: string, name: string, role: 'admin' | 'editor' | 'journ
 const make = (user: User, title: string) =>
   payload.create({
     collection: 'articles',
-    data: { title, slug: '', categories: [category.id], author: author.id } as never,
+    data: {
+      title,
+      slug: '',
+      categories: [category.id],
+      author: author.id,
+      excerpt: 'Resumen de prueba',
+      body: lexicalBody('Contenido de prueba'),
+      featuredImage: media.id,
+    } as never,
     user,
     overrideAccess: false,
     depth: 0,
@@ -46,8 +57,8 @@ const cleanArticles = () =>
 describe('Article status transitions', () => {
   beforeAll(async () => {
     payload = await getPayload({ config: await config })
-    // Safe: vitest.setup.ts guarantees this is the throwaway test database.
     await cleanArticles()
+    await payload.delete({ collection: 'media', where: { id: { exists: true } } })
     await payload.delete({ collection: 'authors', where: { id: { exists: true } } })
     await payload.delete({ collection: 'categories', where: { id: { exists: true } } })
     await payload.delete({ collection: 'users', where: { id: { exists: true } } })
@@ -60,10 +71,16 @@ describe('Article status transitions', () => {
       collection: 'authors',
       data: { displayName: 'Redacción', slug: '' },
     })
+    media = await payload.create({
+      collection: 'media',
+      data: { alt: 'Imagen de prueba' },
+      file: { data: pngBytes, mimetype: 'image/png', name: 'fixture.png', size: pngBytes.length },
+    })
   })
 
   afterAll(async () => {
     await cleanArticles()
+    await payload.delete({ collection: 'media', where: { id: { exists: true } } })
   })
 
   it('lets a journalist submit their own draft for review', async () => {

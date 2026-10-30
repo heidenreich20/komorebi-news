@@ -43,6 +43,13 @@ const make = (
     depth: 0,
   })
 
+const seed = (title: string, extra: { editorialStatus?: Status; publishedAt?: string } = {}) =>
+  payload.create({
+    collection: 'articles',
+    data: { title, slug: '', categories: [category.id], author: author.id, ...extra } as never,
+    depth: 0,
+  })
+
 const idOf = (value: unknown): unknown =>
   value && typeof value === 'object' ? (value as { id: unknown }).id : value
 
@@ -99,18 +106,14 @@ describe('Articles', () => {
   })
 
   it('shows anonymous visitors only published or due-scheduled articles', async () => {
-    await make(editor, 'Nota en borrador')
-    await make(editor, 'Nota en revision', { editorialStatus: 'in_review' })
-    await make(editor, 'Nota publicada', { editorialStatus: 'published', publishedAt: PAST })
-    await make(editor, 'Nota programada vencida', {
-      editorialStatus: 'scheduled',
-      publishedAt: PAST,
-    })
-    await make(editor, 'Nota programada futura', {
-      editorialStatus: 'scheduled',
-      publishedAt: FUTURE,
-    })
-    await make(editor, 'Nota publicada sin fecha', { editorialStatus: 'published' })
+    await seed('Nota en borrador')
+    await seed('Nota en revision', { editorialStatus: 'in_review', publishedAt: PAST })
+    await seed('Nota rechazada', { editorialStatus: 'rejected', publishedAt: PAST })
+    await seed('Nota archivada', { editorialStatus: 'archived', publishedAt: PAST })
+    await seed('Nota publicada', { editorialStatus: 'published', publishedAt: PAST })
+    await seed('Nota programada vencida', { editorialStatus: 'scheduled', publishedAt: PAST })
+    await seed('Nota programada futura', { editorialStatus: 'scheduled', publishedAt: FUTURE })
+    await seed('Nota publicada sin fecha', { editorialStatus: 'published' })
 
     const result = await payload.find({
       collection: 'articles',
