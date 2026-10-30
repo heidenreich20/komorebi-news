@@ -3,6 +3,7 @@ import * as migration_20261030_014915_users_roles from './20261030_014915_users_
 import * as migration_20261030_031525_categories from './20261030_031525_categories';
 import * as migration_20261030_035148_tags from './20261030_035148_tags';
 import * as migration_20261030_035731_media_metadata from './20261030_035731_media_metadata';
+import * as migration_20261030_041127_authors from './20261030_041127_authors';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20261030_035731_media_metadata.up,
     down: migration_20261030_035731_media_metadata.down,
-    name: '20261030_035731_media_metadata'
+    name: '20261030_035731_media_metadata',
+  },
+  {
+    up: migration_20261030_041127_authors.up,
+    down: migration_20261030_041127_authors.down,
+    name: '20261030_041127_authors'
   },
 ];
