@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 import { env } from './env'
 import { Categories } from './collections/Categories'
+import { Tags } from './collections/Tags'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
@@ -20,7 +21,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Categories],
+  collections: [Users, Media, Categories, Tags],
   editor: lexicalEditor(),
   secret: env.payloadSecret,
   typescript: {
