@@ -93,6 +93,13 @@ describe('Media', () => {
     ).rejects.toThrow()
   })
 
+  it('rejects a file whose bytes do not match its declared image type', async () => {
+    const script = Buffer.from('<script>alert(1)</script>')
+    await expect(
+      upload(journalist, { name: 'fake.png', mimetype: 'image/png', data: script }),
+    ).rejects.toThrow()
+  })
+
   it('rejects a source URL that is not http(s)', async () => {
     await expect(
       upload(journalist, { fields: { sourceUrl: 'javascript:alert(1)' } }),
