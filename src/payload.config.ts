@@ -29,6 +29,8 @@ export default buildConfig({
     pool: {
       connectionString: env.databaseUrl,
     },
+    push: false,
+    migrationDir: path.resolve(dirname, 'migrations'),
   }),
   sharp,
   plugins: [],
