@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,6 +16,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       PAYLOAD_SECRET: ci-only-dummy-secret-not-for-real-use-0000
@@ -37,6 +39,7 @@ jobs:
 
   test:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
@@ -47,10 +50,10 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ci"
+          --health-cmd "pg_isready -U ci -d ci"
           --health-interval 5s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 12
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       PAYLOAD_SECRET: ci-only-dummy-secret-not-for-real-use-0000
