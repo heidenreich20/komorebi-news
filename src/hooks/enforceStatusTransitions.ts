@@ -62,13 +62,7 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
   const to = data.editorialStatus
 
   if (!req.user) {
-    if (from !== 'draft') {
-      deny('Las operaciones sin usuario autenticado solo pueden modificar borradores.')
-    }
-    if (to && to !== from) {
-      deny('Se requiere un usuario autorizado para cambiar el estado editorial.')
-    }
-    return data
+    deny('Se requiere un usuario autorizado para modificar artículos existentes.')
   }
 
   if (isJournalist) {
