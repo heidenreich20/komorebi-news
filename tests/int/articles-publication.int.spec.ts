@@ -175,7 +175,7 @@ describe('Article publication rules', () => {
       await expect(
         patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: inDays(1) }),
       ).rejects.toThrow(missing)
-      expect((await fresh(draft.id)).editorialStatus).toBe('draft')
+      expect((await fresh(draft.id)).editorialStatus).toBe('in_review')
     }
   })
 
@@ -212,6 +212,7 @@ describe('Article publication rules', () => {
     const unpublished = await patch(editor, draft.id, { editorialStatus: 'draft' })
     expect(time(unpublished.publishedAt)).toBe(original)
 
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     const again = await patch(editor, draft.id, { editorialStatus: 'published' })
     expect(time(again.publishedAt)).toBe(original)
   })
@@ -221,6 +222,7 @@ describe('Article publication rules', () => {
     await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await patch(editor, draft.id, { editorialStatus: 'published' })
     await patch(editor, draft.id, { editorialStatus: 'draft' })
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await expect(
       patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: inDays(7) }),
     ).rejects.toThrow('reprogramar')
@@ -229,6 +231,7 @@ describe('Article publication rules', () => {
 
   it('accepts only a future date when scheduling', async () => {
     const draft = await create(editor, 'Programación')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await expect(
       patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: PAST }),
     ).rejects.toThrow('futura')
@@ -236,7 +239,6 @@ describe('Article publication rules', () => {
       'futura',
     )
     const target = inDays(3)
-    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     const scheduled = await patch(editor, draft.id, {
       editorialStatus: 'scheduled',
       publishedAt: target,
