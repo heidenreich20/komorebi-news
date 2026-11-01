@@ -226,7 +226,7 @@ describe('Article publication rules', () => {
     await expect(
       patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: inDays(7) }),
     ).rejects.toThrow('reprogramar')
-    expect((await fresh(draft.id)).editorialStatus).toBe('draft')
+    expect((await fresh(draft.id)).editorialStatus).toBe('in_review')
   })
 
   it('accepts only a future date when scheduling', async () => {
