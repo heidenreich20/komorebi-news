@@ -113,6 +113,53 @@ describe('Article publication rules', () => {
     await payload.delete({ collection: 'media', where: { id: { exists: true } } })
   })
 
+  it('enforces publication rules for unauthenticated Local API calls', async () => {
+    const anonymousDraft = await payload.create({
+      collection: 'articles',
+      data: {
+        title: 'Borrador anónimo',
+        slug: '',
+        categories: [category.id],
+        author: author.id,
+        ...content(),
+      } as never,
+      overrideAccess: true,
+      depth: 0,
+    })
+    expect(anonymousDraft.editorialStatus).toBe('draft')
+    expect(anonymousDraft.publishedAt ?? null).toBeNull()
+
+    await expect(payload.update({
+      collection: 'articles',
+      id: anonymousDraft.id,
+      data: { editorialStatus: 'in_review' },
+      overrideAccess: true,
+      depth: 0,
+    })).rejects.toThrow('usuario autorizado')
+
+    await expect(payload.update({
+      collection: 'articles',
+      id: anonymousDraft.id,
+      data: { publishedAt: inDays(2) },
+      overrideAccess: true,
+      depth: 0,
+    })).rejects.toThrow('usuario autorizado')
+
+    await expect(payload.create({
+      collection: 'articles',
+      data: {
+        title: 'Publicación anónima',
+        slug: '',
+        categories: [category.id],
+        author: author.id,
+        ...content(),
+        editorialStatus: 'published',
+      } as never,
+      overrideAccess: true,
+      depth: 0,
+    })).rejects.toThrow('borrador')
+  })
+
   it('requires an image, a summary and content to publish or schedule', async () => {
     const variants: Record<string, Record<string, unknown>> = {
       'imagen destacada': { featuredImage: undefined },
