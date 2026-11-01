@@ -56,7 +56,16 @@ export const Articles: CollectionConfig = {
     delete: isAdmin,
     readVersions: isAdminOrEditor,
   },
-  hooks: { beforeValidate: [enforceStatusTransitions, enforcePublicationRules] },
+  hooks: {
+    beforeValidate: [enforceStatusTransitions, enforcePublicationRules],
+    beforeOperation: [
+      ({ operation, req }) => {
+        if (operation === 'restoreVersion' && hasRole(req.user, 'journalist')) {
+          throw new Error('Los periodistas no tienen permitido restaurar versiones.')
+        }
+      },
+    ],
+  },
   fields: [
     { name: 'title', type: 'text', required: true },
     slugField('title'),

@@ -73,6 +73,26 @@ const patch = (user: User, id: number, data: Record<string, unknown>) =>
 
 const fresh = (id: number) => payload.findByID({ collection: 'articles', id, depth: 0 })
 
+const versionsOf = async (articleId: number) =>
+  (
+    await payload.findVersions({
+      collection: 'articles',
+      where: { parent: { equals: articleId } },
+      sort: 'createdAt',
+      limit: 100,
+      depth: 0,
+    })
+  ).docs
+
+const restore = (user: User, versionId: number | string) =>
+  payload.restoreVersion({
+    collection: 'articles',
+    id: String(versionId),
+    user,
+    overrideAccess: false,
+    depth: 0,
+  })
+
 const time = (value: string | null | undefined) => new Date(value as string).getTime()
 
 const cleanArticles = () =>
@@ -263,5 +283,63 @@ describe('Article publication rules', () => {
     const live = await create(editor, 'Artículo en vivo', { editorialStatus: 'published' })
     await expect(patch(editor, live.id, { excerpt: '' })).rejects.toThrow('resumen')
     expect((await fresh(live.id)).excerpt).toBe('Resumen de prueba')
+  })
+
+  it('lets editors restore the content of an older version', async () => {
+    const article = await create(editor, 'Contenido restaurable', {
+      excerpt: 'Primera redacción',
+    })
+    await patch(editor, article.id, { excerpt: 'Segunda redacción' })
+
+    const first = (await versionsOf(article.id)).find(
+      (v) => v.version.excerpt === 'Primera redacción',
+    )
+    if (!first) throw new Error('The first version was not saved')
+
+    await restore(editor, first.id)
+    expect((await fresh(article.id)).excerpt).toBe('Primera redacción')
+  })
+
+  it('does not let journalists restore versions, not even of their own drafts', async () => {
+    const mine = await create(journalist, 'Versiones propias', { excerpt: 'Primera redacción' })
+    await patch(journalist, mine.id, { excerpt: 'Segunda redacción' })
+
+    const first = (await versionsOf(mine.id)).find((v) => v.version.excerpt === 'Primera redacción')
+    if (!first) throw new Error('The first version was not saved')
+
+    await expect(restore(journalist, first.id)).rejects.toThrow()
+    expect((await fresh(mine.id)).excerpt).toBe('Segunda redacción')
+  })
+
+  it('does not let a restore erase the first publication date', async () => {
+    const article = await create(editor, 'Restaurar sobre publicada')
+    await patch(editor, article.id, { excerpt: 'Antes de publicar' })
+    const published = await patch(editor, article.id, { editorialStatus: 'published' })
+    const original = time(published.publishedAt)
+
+    const draftVersion = (await versionsOf(article.id)).find(
+      (v) => v.version.editorialStatus === 'draft',
+    )
+    if (!draftVersion) throw new Error('The draft version was not saved')
+
+    // Either the restore is rejected or it keeps the date; it must never wipe it.
+    await restore(editor, draftVersion.id).catch(() => undefined)
+    expect(time((await fresh(article.id)).publishedAt)).toBe(original)
+  })
+
+  it('does not let a restore reschedule an article that is already public', async () => {
+    const article = await create(editor, 'Restaurar programada')
+    await patch(editor, article.id, { editorialStatus: 'scheduled', publishedAt: inDays(5) })
+    const published = await patch(editor, article.id, { editorialStatus: 'published' })
+
+    const scheduledVersion = (await versionsOf(article.id)).find(
+      (v) => v.version.editorialStatus === 'scheduled',
+    )
+    if (!scheduledVersion) throw new Error('The scheduled version was not saved')
+
+    await restore(editor, scheduledVersion.id).catch(() => undefined)
+    const after = await fresh(article.id)
+    expect(after.editorialStatus).toBe('published')
+    expect(time(after.publishedAt)).toBe(time(published.publishedAt))
   })
 })
