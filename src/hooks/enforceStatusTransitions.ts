@@ -44,6 +44,10 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
   const isEditor = hasRole(req.user, 'admin', 'editor')
   const isJournalist = hasRole(req.user, 'journalist')
 
+  if (req.user && !isEditor && !isJournalist) {
+    deny('El usuario no tiene permisos para operar sobre artículos.')
+  }
+
   if (operation === 'create') {
     const initialStatus = data.editorialStatus ?? 'draft'
     if (initialStatus !== 'draft') {
