@@ -41,10 +41,11 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
 }) => {
   if (!data) return data
 
-  const isEditor = hasRole(req.user, 'admin', 'editor')
-  const isJournalist = hasRole(req.user, 'journalist')
+  const user = req.user
+  const isEditor = hasRole(user, 'admin', 'editor')
+  const isJournalist = hasRole(user, 'journalist')
 
-  if (req.user && !isEditor && !isJournalist) {
+  if (user && !isEditor && !isJournalist) {
     deny('El usuario no tiene permisos para operar sobre artículos.')
   }
 
@@ -58,18 +59,18 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
 
   if (operation !== 'update' || !originalDoc) return data
 
-  const from = originalDoc.editorialStatus
-  const to = data.editorialStatus
-
-  if (!req.user) {
+  if (!user) {
     deny('Se requiere un usuario autorizado para modificar artículos existentes.')
   }
+
+  const from = originalDoc.editorialStatus
+  const to = data.editorialStatus
 
   if (isJournalist) {
     if (from !== 'draft' && from !== 'rejected') {
       deny('Los periodistas no pueden modificar artículos después de enviarlos a revisión.')
     }
-    if (relationId(originalDoc.createdBy) !== String(req.user.id)) {
+    if (relationId(originalDoc.createdBy) !== String(user.id)) {
       deny('Los periodistas solo pueden modificar sus propios borradores.')
     }
   }
