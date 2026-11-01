@@ -73,7 +73,7 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
     if (from !== 'draft' && from !== 'rejected') {
       deny('Los periodistas no pueden modificar artículos después de enviarlos a revisión.')
     }
-    if (relationId(originalDoc.createdBy) !== String(user.id)) {
+    if (relationId(originalDoc.createdBy) !== String(user?.id)) {
       deny('Los periodistas solo pueden modificar sus propios borradores.')
     }
   }
