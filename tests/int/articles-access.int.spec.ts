@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { getPayload, type Payload } from 'payload'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import config from '@/payload.config'
 import type { Article, Author, Category, Media, User } from '@/payload-types'
@@ -9,6 +9,7 @@ import { lexicalBody, pngBytes } from '../helpers/articleFixtures'
 const password = 'test-password-123'
 const PAST = '2020-01-01T00:00:00.000Z'
 const FUTURE = '2999-01-01T00:00:00.000Z'
+const FAR_FUTURE = '4000-01-01T00:00:00.000Z'
 
 type Status = Article['editorialStatus']
 
@@ -190,8 +191,12 @@ describe('Articles', () => {
     await seed('Nota rechazada', { editorialStatus: 'rejected', publishedAt: PAST })
     await seed('Nota archivada', { editorialStatus: 'archived', publishedAt: PAST })
     await seed('Nota publicada', { editorialStatus: 'published', publishedAt: PAST })
-    await seed('Nota programada vencida', { editorialStatus: 'scheduled', publishedAt: PAST })
-    await seed('Nota programada futura', { editorialStatus: 'scheduled', publishedAt: FUTURE })
+    await seed('Nota programada vencida', { editorialStatus: 'scheduled', publishedAt: FUTURE })
+
+    // Simulate time passing after a valid future schedule was created.
+    const now = new Date()
+    vi.setSystemTime(new Date('3000-01-01T00:00:00.000Z'))
+    await seed('Nota programada futura', { editorialStatus: 'scheduled', publishedAt: FAR_FUTURE })
 
     const result = await payload.find({
       collection: 'articles',
@@ -201,6 +206,7 @@ describe('Articles', () => {
     })
     const slugs = result.docs.map((doc) => doc.slug).sort()
     expect(slugs).toEqual(['nota-programada-vencida', 'nota-publicada'])
+    vi.setSystemTime(now)
   })
 
   it('shows a journalist their own articles plus public ones, never others’ drafts', async () => {
