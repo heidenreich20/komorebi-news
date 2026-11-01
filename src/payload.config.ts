@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { s3Storage } from '@payloadcms/storage-s3'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -35,6 +36,34 @@ export default buildConfig({
     push: false,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
+  storage: env.r2
+    ? [
+        s3Storage({
+          enabled: true,
+          collections: {
+            media: {
+              disablePayloadAccessControl: true,
+              generateFileURL: ({ filename, prefix }) => {
+                const key = prefix ? `${prefix}/${filename}` : filename
+                const encodedKey = key.split('/').map(encodeURIComponent).join('/')
+                return `${env.r2!.publicUrl.replace(/\/+$/, '')}/${encodedKey}`
+              },
+            },
+          },
+          bucket: env.r2.bucket,
+          clientUploads: true,
+          config: {
+            credentials: {
+              accessKeyId: env.r2.accessKeyId,
+              secretAccessKey: env.r2.secretAccessKey,
+            },
+            region: 'auto',
+            endpoint: env.r2.endpoint,
+            forcePathStyle: true,
+          },
+        }),
+      ]
+    : [],
   upload: {
     limits: { fileSize: 5_000_000 },
   },
