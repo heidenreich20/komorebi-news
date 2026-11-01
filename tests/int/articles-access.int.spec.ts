@@ -1,13 +1,15 @@
 // @vitest-environment node
 import { getPayload, type Payload } from 'payload'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import config from '@/payload.config'
-import type { Article, Author, Category, User } from '@/payload-types'
+import type { Article, Author, Category, Media, User } from '@/payload-types'
+import { lexicalBody, pngBytes } from '../helpers/articleFixtures'
 
 const password = 'test-password-123'
 const PAST = '2020-01-01T00:00:00.000Z'
 const FUTURE = '2999-01-01T00:00:00.000Z'
+const FAR_FUTURE = '4000-01-01T00:00:00.000Z'
 
 type Status = Article['editorialStatus']
 
@@ -18,6 +20,7 @@ let journalist: User
 let otherJournalist: User
 let category: Category
 let author: Author
+let media: Media
 
 const makeUser = (email: string, name: string, role: 'admin' | 'editor' | 'journalist') =>
   payload.create({ collection: 'users', data: { email, password, name, role } })
@@ -43,12 +46,84 @@ const make = (
     depth: 0,
   })
 
-const seed = (title: string, extra: { editorialStatus?: Status; publishedAt?: string } = {}) =>
-  payload.create({
+const seed = async (
+  title: string,
+  extra: { editorialStatus?: Status; publishedAt?: string } = {},
+) => {
+  const article = await payload.create({
     collection: 'articles',
-    data: { title, slug: '', categories: [category.id], author: author.id, ...extra } as never,
+    data: {
+      title,
+      slug: '',
+      categories: [category.id],
+      author: author.id,
+      excerpt: 'Resumen de prueba',
+      body: lexicalBody('Contenido de prueba'),
+      featuredImage: media.id,
+    } as never,
+    user: editor,
+    overrideAccess: false,
     depth: 0,
   })
+
+  const status = extra.editorialStatus ?? 'draft'
+  if (status === 'draft') return article
+
+  await payload.update({
+    collection: 'articles',
+    id: article.id,
+    data: { editorialStatus: 'in_review' },
+    user: editor,
+    overrideAccess: false,
+  })
+
+  if (status === 'in_review') {
+    return payload.findByID({ collection: 'articles', id: article.id, depth: 0 })
+  }
+
+  if (status === 'rejected') {
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { editorialStatus: 'rejected' },
+      user: editor,
+      overrideAccess: false,
+    })
+  } else if (status === 'archived') {
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { editorialStatus: 'rejected' },
+      user: editor,
+      overrideAccess: false,
+    })
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { editorialStatus: 'archived' },
+      user: editor,
+      overrideAccess: false,
+    })
+  } else if (status === 'published') {
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { editorialStatus: 'published' },
+      user: editor,
+      overrideAccess: false,
+    })
+  } else if (status === 'scheduled') {
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { editorialStatus: 'scheduled', publishedAt: extra.publishedAt },
+      user: editor,
+      overrideAccess: false,
+    })
+  }
+
+  return payload.findByID({ collection: 'articles', id: article.id, depth: 0 })
+}
 
 const idOf = (value: unknown): unknown =>
   value && typeof value === 'object' ? (value as { id: unknown }).id : value
@@ -76,6 +151,11 @@ describe('Articles', () => {
     author = await payload.create({
       collection: 'authors',
       data: { displayName: 'Redacción', slug: '' },
+    })
+    media = await payload.create({
+      collection: 'media',
+      data: { alt: 'Imagen de prueba' },
+      file: { data: pngBytes, mimetype: 'image/png', name: 'fixture.png', size: pngBytes.length },
     })
   })
 
@@ -111,9 +191,12 @@ describe('Articles', () => {
     await seed('Nota rechazada', { editorialStatus: 'rejected', publishedAt: PAST })
     await seed('Nota archivada', { editorialStatus: 'archived', publishedAt: PAST })
     await seed('Nota publicada', { editorialStatus: 'published', publishedAt: PAST })
-    await seed('Nota programada vencida', { editorialStatus: 'scheduled', publishedAt: PAST })
-    await seed('Nota programada futura', { editorialStatus: 'scheduled', publishedAt: FUTURE })
-    await seed('Nota publicada sin fecha', { editorialStatus: 'published' })
+    await seed('Nota programada vencida', { editorialStatus: 'scheduled', publishedAt: FUTURE })
+
+    // Simulate time passing after a valid future schedule was created.
+    const now = new Date()
+    vi.setSystemTime(new Date('3000-01-01T00:00:00.000Z'))
+    await seed('Nota programada futura', { editorialStatus: 'scheduled', publishedAt: FAR_FUTURE })
 
     const result = await payload.find({
       collection: 'articles',
@@ -123,6 +206,7 @@ describe('Articles', () => {
     })
     const slugs = result.docs.map((doc) => doc.slug).sort()
     expect(slugs).toEqual(['nota-programada-vencida', 'nota-publicada'])
+    vi.setSystemTime(now)
   })
 
   it('shows a journalist their own articles plus public ones, never others’ drafts', async () => {

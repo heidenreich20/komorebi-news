@@ -105,6 +105,30 @@ describe('Article status transitions', () => {
     expect(moved.editorialStatus).toBe('in_review')
   })
 
+  it('keeps journalist restrictions when Local API access checks are overridden', async () => {
+    const mine = await make(journalist, 'No editar después de revisión')
+    await move(journalist, mine.id, 'in_review')
+
+    await expect(payload.update({
+      collection: 'articles',
+      id: mine.id,
+      data: { editorialStatus: 'published' },
+      user: journalist,
+      overrideAccess: true,
+      depth: 0,
+    })).rejects.toThrow()
+
+    await expect(payload.update({
+      collection: 'articles',
+      id: mine.id,
+      data: { excerpt: 'Edición no permitida' },
+      user: journalist,
+      overrideAccess: true,
+      depth: 0,
+    })).rejects.toThrow('después de enviarlos a revisión')
+    expect(await statusOf(mine.id)).toBe('in_review')
+  })
+
   it('lets editors approve a submitted article', async () => {
     const mine = await make(journalist, 'Para aprobar')
     await move(journalist, mine.id, 'in_review')
@@ -122,6 +146,8 @@ describe('Article status transitions', () => {
 
   it('makes an archived article go back through draft', async () => {
     const mine = await make(editor, 'Archivada')
+    await move(editor, mine.id, 'in_review')
+    await move(editor, mine.id, 'rejected')
     await move(editor, mine.id, 'archived')
     await expect(move(editor, mine.id, 'published')).rejects.toThrow()
     const back = await move(editor, mine.id, 'draft')
@@ -130,6 +156,7 @@ describe('Article status transitions', () => {
 
   it('lets editors unpublish a published article', async () => {
     const mine = await make(editor, 'Se despublica')
+    await move(editor, mine.id, 'in_review')
     await move(editor, mine.id, 'published')
     const unpublished = await move(editor, mine.id, 'draft')
     expect(unpublished.editorialStatus).toBe('draft')
@@ -137,6 +164,7 @@ describe('Article status transitions', () => {
 
   it('lets editors edit a published article without changing its status', async () => {
     const mine = await make(editor, 'Corrección en vivo')
+    await move(editor, mine.id, 'in_review')
     await move(editor, mine.id, 'published')
     const edited = await payload.update({
       collection: 'articles',
