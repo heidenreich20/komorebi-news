@@ -15,6 +15,7 @@ import { Articles } from './collections/Articles'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+const r2 = env.r2
 
 export default buildConfig({
   admin: {
@@ -36,7 +37,7 @@ export default buildConfig({
     push: false,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
-  storage: env.r2
+  storage: r2
     ? [
         s3Storage({
           enabled: true,
@@ -46,19 +47,19 @@ export default buildConfig({
               generateFileURL: ({ filename, prefix }) => {
                 const key = prefix ? `${prefix}/${filename}` : filename
                 const encodedKey = key.split('/').map(encodeURIComponent).join('/')
-                return `${env.r2!.publicUrl.replace(/\/+$/, '')}/${encodedKey}`
+                return `${r2.publicUrl.replace(/\/+$/, '')}/${encodedKey}`
               },
             },
           },
-          bucket: env.r2.bucket,
+          bucket: r2.bucket,
           clientUploads: true,
           config: {
             credentials: {
-              accessKeyId: env.r2.accessKeyId,
-              secretAccessKey: env.r2.secretAccessKey,
+              accessKeyId: r2.accessKeyId,
+              secretAccessKey: r2.secretAccessKey,
             },
             region: 'auto',
-            endpoint: env.r2.endpoint,
+            endpoint: r2.endpoint,
             forcePathStyle: true,
           },
         }),
