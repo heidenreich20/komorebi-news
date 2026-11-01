@@ -67,6 +67,9 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
   const to = data.editorialStatus
 
   if (isJournalist) {
+    if (!user) {
+      deny('Se requiere un usuario autorizado para modificar artículos existentes.')
+    }
     if (from !== 'draft' && from !== 'rejected') {
       deny('Los periodistas no pueden modificar artículos después de enviarlos a revisión.')
     }
