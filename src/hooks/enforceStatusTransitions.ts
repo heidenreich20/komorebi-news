@@ -23,6 +23,14 @@ const deny = (message: string): never => {
   throw new APIError(message, 403, undefined, true)
 }
 
+const relationId = (value: unknown): string | undefined => {
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  if (value && typeof value === 'object' && 'id' in value) {
+    return String((value as { id: string | number }).id)
+  }
+  return undefined
+}
+
 // Domain workflow validation is independent of Payload access control.
 // Local API calls with overrideAccess still have to obey these transitions.
 export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = ({
@@ -48,11 +56,27 @@ export const enforceStatusTransitions: CollectionBeforeValidateHook<Article> = (
 
   const from = originalDoc.editorialStatus
   const to = data.editorialStatus
-  if (!to || to === from) return data
 
   if (!req.user) {
-    deny('Se requiere un usuario autorizado para cambiar el estado editorial.')
+    if (from !== 'draft') {
+      deny('Las operaciones sin usuario autenticado solo pueden modificar borradores.')
+    }
+    if (to && to !== from) {
+      deny('Se requiere un usuario autorizado para cambiar el estado editorial.')
+    }
+    return data
   }
+
+  if (isJournalist) {
+    if (from !== 'draft' && from !== 'rejected') {
+      deny('Los periodistas no pueden modificar artículos después de enviarlos a revisión.')
+    }
+    if (relationId(originalDoc.createdBy) !== String(req.user.id)) {
+      deny('Los periodistas solo pueden modificar sus propios borradores.')
+    }
+  }
+
+  if (!to || to === from) return data
 
   const allowed = isEditor
     ? EDITOR_TRANSITIONS[from]
