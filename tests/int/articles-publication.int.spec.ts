@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { getPayload, type Payload } from 'payload'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import config from '@/payload.config'
 import type { Author, Category, Media, User } from '@/payload-types'
@@ -301,6 +301,31 @@ describe('Article publication rules', () => {
       })
     expect((await find(live.slug)).totalDocs).toBe(1)
     expect((await find(future.slug)).totalDocs).toBe(0)
+  })
+
+  it('makes a scheduled article public when its publication time arrives', async () => {
+    const draft = await create(editor, 'Programada que vence')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
+    const target = inDays(2)
+    await patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: target })
+
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(new Date(target))
+      const visible = await payload.find({
+        collection: 'articles',
+        where: { slug: { equals: draft.slug } },
+        overrideAccess: false,
+        depth: 0,
+      })
+      expect(visible.totalDocs).toBe(1)
+
+      await expect(patch(editor, draft.id, { publishedAt: inDays(5) })).rejects.toThrow(
+        'primera publicación',
+      )
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('keeps a live article complete', async () => {
