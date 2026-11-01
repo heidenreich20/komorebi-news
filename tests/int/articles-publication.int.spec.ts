@@ -132,6 +132,14 @@ describe('Article publication rules', () => {
     await expect(payload.update({
       collection: 'articles',
       id: anonymousDraft.id,
+      data: { excerpt: 'Edición anónima no permitida' },
+      overrideAccess: true,
+      depth: 0,
+    })).rejects.toThrow('usuario autorizado')
+
+    await expect(payload.update({
+      collection: 'articles',
+      id: anonymousDraft.id,
       data: { editorialStatus: 'in_review' },
       overrideAccess: true,
       depth: 0,
