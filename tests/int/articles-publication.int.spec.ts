@@ -46,21 +46,6 @@ const create = (user: User, title: string, extra: Record<string, unknown> = {}) 
     depth: 0,
   })
 
-// System-level fixture (no user): skips the publication hooks on purpose.
-const seed = (title: string, extra: Record<string, unknown> = {}) =>
-  payload.create({
-    collection: 'articles',
-    data: {
-      title,
-      slug: '',
-      categories: [category.id],
-      author: author.id,
-      ...content(),
-      ...extra,
-    } as never,
-    depth: 0,
-  })
-
 const patch = (user: User, id: number, data: Record<string, unknown>) =>
   payload.update({
     collection: 'articles',
@@ -136,6 +121,7 @@ describe('Article publication rules', () => {
     }
     for (const [missing, override] of Object.entries(variants)) {
       const draft = await create(editor, `Incompleta sin ${missing}`, override)
+      await patch(editor, draft.id, { editorialStatus: 'in_review' })
       await expect(patch(editor, draft.id, { editorialStatus: 'published' })).rejects.toThrow(
         missing,
       )
@@ -148,6 +134,7 @@ describe('Article publication rules', () => {
 
   it('sets the first publication date on the server, ignoring the client', async () => {
     const draft = await create(editor, 'Fecha del servidor')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     const published = await patch(editor, draft.id, {
       editorialStatus: 'published',
       publishedAt: CLIENT_DATE,
@@ -155,17 +142,16 @@ describe('Article publication rules', () => {
     expect(Math.abs(time(published.publishedAt) - Date.now())).toBeLessThan(60_000)
   })
 
-  it('also ignores a client date when an editor creates an already published article', async () => {
-    const created = await create(editor, 'Creada publicada', {
+  it('does not let an editor create an article that skips review', async () => {
+    await expect(create(editor, 'Creada publicada', {
       editorialStatus: 'published',
       publishedAt: CLIENT_DATE,
-    })
-    expect(created.editorialStatus).toBe('published')
-    expect(Math.abs(time(created.publishedAt) - Date.now())).toBeLessThan(60_000)
+    })).rejects.toThrow('pasar por revisión')
   })
 
   it('keeps the first publication date forever, even after unpublishing and republishing', async () => {
     const draft = await create(editor, 'Fecha permanente')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     const first = await patch(editor, draft.id, { editorialStatus: 'published' })
     const original = time(first.publishedAt)
 
@@ -185,6 +171,7 @@ describe('Article publication rules', () => {
 
   it('does not let a previously published article be scheduled again', async () => {
     const draft = await create(editor, 'Ya publicada')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await patch(editor, draft.id, { editorialStatus: 'published' })
     await patch(editor, draft.id, { editorialStatus: 'draft' })
     await expect(
@@ -202,6 +189,7 @@ describe('Article publication rules', () => {
       'futura',
     )
     const target = inDays(3)
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     const scheduled = await patch(editor, draft.id, {
       editorialStatus: 'scheduled',
       publishedAt: target,
@@ -211,6 +199,7 @@ describe('Article publication rules', () => {
 
   it('lets editors change the date of a scheduled article while it is still scheduled', async () => {
     const draft = await create(editor, 'Reprogramable')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: inDays(3) })
 
     const later = inDays(10)
@@ -222,6 +211,7 @@ describe('Article publication rules', () => {
 
   it('clears the future date when a scheduled article goes back to draft', async () => {
     const draft = await create(editor, 'Se desprograma')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: inDays(3) })
     await patch(editor, draft.id, { editorialStatus: 'draft' })
     expect((await fresh(draft.id)).publishedAt ?? null).toBeNull()
@@ -229,29 +219,10 @@ describe('Article publication rules', () => {
 
   it('publishes a scheduled article early with the server time', async () => {
     const draft = await create(editor, 'Adelantada')
+    await patch(editor, draft.id, { editorialStatus: 'in_review' })
     await patch(editor, draft.id, { editorialStatus: 'scheduled', publishedAt: inDays(5) })
     const published = await patch(editor, draft.id, { editorialStatus: 'published' })
     expect(Math.abs(time(published.publishedAt) - Date.now())).toBeLessThan(60_000)
-  })
-
-  it('treats a due scheduled article as already published', async () => {
-    const due = await seed('Programada vencida', {
-      editorialStatus: 'scheduled',
-      publishedAt: PAST,
-    })
-    const visible = await payload.find({
-      collection: 'articles',
-      where: { slug: { equals: due.slug } },
-      overrideAccess: false,
-      depth: 0,
-    })
-    expect(visible.totalDocs).toBe(1)
-
-    await expect(patch(editor, due.id, { publishedAt: inDays(5) })).rejects.toThrow(
-      'primera publicación',
-    )
-    const back = await patch(editor, due.id, { editorialStatus: 'draft' })
-    expect(time(back.publishedAt)).toBe(time(PAST))
   })
 
   it('ignores publication dates sent by journalists', async () => {
@@ -263,8 +234,12 @@ describe('Article publication rules', () => {
   })
 
   it('makes a published article public and keeps a future scheduled one hidden', async () => {
-    const live = await create(editor, 'Visible para todos', { editorialStatus: 'published' })
-    const future = await create(editor, 'Oculta hasta su hora', {
+    const live = await create(editor, 'Visible para todos')
+    await patch(editor, live.id, { editorialStatus: 'in_review' })
+    await patch(editor, live.id, { editorialStatus: 'published' })
+    const future = await create(editor, 'Oculta hasta su hora')
+    await patch(editor, future.id, { editorialStatus: 'in_review' })
+    await patch(editor, future.id, {
       editorialStatus: 'scheduled',
       publishedAt: inDays(2),
     })
@@ -280,7 +255,9 @@ describe('Article publication rules', () => {
   })
 
   it('keeps a live article complete', async () => {
-    const live = await create(editor, 'Artículo en vivo', { editorialStatus: 'published' })
+    const live = await create(editor, 'Artículo en vivo')
+    await patch(editor, live.id, { editorialStatus: 'in_review' })
+    await patch(editor, live.id, { editorialStatus: 'published' })
     await expect(patch(editor, live.id, { excerpt: '' })).rejects.toThrow('resumen')
     expect((await fresh(live.id)).excerpt).toBe('Resumen de prueba')
   })
@@ -314,6 +291,7 @@ describe('Article publication rules', () => {
   it('does not let a restore erase the first publication date', async () => {
     const article = await create(editor, 'Restaurar sobre publicada')
     await patch(editor, article.id, { excerpt: 'Antes de publicar' })
+    await patch(editor, article.id, { editorialStatus: 'in_review' })
     const published = await patch(editor, article.id, { editorialStatus: 'published' })
     const original = time(published.publishedAt)
 
@@ -329,6 +307,7 @@ describe('Article publication rules', () => {
 
   it('does not let a restore reschedule an article that is already public', async () => {
     const article = await create(editor, 'Restaurar programada')
+    await patch(editor, article.id, { editorialStatus: 'in_review' })
     await patch(editor, article.id, { editorialStatus: 'scheduled', publishedAt: inDays(5) })
     const published = await patch(editor, article.id, { editorialStatus: 'published' })
 
