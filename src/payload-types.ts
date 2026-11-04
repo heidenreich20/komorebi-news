@@ -165,6 +165,7 @@ export interface Media {
   credit?: string | null;
   sourceUrl?: string | null;
   uploadedBy?: (number | null) | User;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -384,6 +385,7 @@ export interface MediaSelect<T extends boolean = true> {
   credit?: T;
   sourceUrl?: T;
   uploadedBy?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

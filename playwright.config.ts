@@ -1,10 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
+import { loadAndGuardE2EEnv } from './tests/helpers/e2eEnv'
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-import 'dotenv/config'
+// Fail before Playwright can start the app or execute test hooks.
+loadAndGuardE2EEnv()
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -35,7 +33,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     url: 'http://localhost:3000',
   },
 })

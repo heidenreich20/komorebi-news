@@ -37,7 +37,11 @@ export default buildConfig({
     push: false,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
-  storage: r2
+  upload: {
+    limits: { fileSize: 5_000_000 },
+  },
+  sharp,
+  plugins: r2
     ? [
         s3Storage({
           enabled: true,
@@ -65,9 +69,4 @@ export default buildConfig({
         }),
       ]
     : [],
-  upload: {
-    limits: { fileSize: 5_000_000 },
-  },
-  sharp,
-  plugins: [],
 })
