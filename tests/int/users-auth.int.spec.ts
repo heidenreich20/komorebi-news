@@ -70,7 +70,7 @@ describe('Users authentication and session revocation', () => {
     }
   })
 
-  it('does not issue a usable token through password reset for an inactive user', async () => {
+  it('rejects password reset for inactive users', async () => {
     const user = inactiveUsers.get('journalist')!
     const token = await payload.forgotPassword({
       collection: 'users',
@@ -163,6 +163,19 @@ describe('Users authentication and session revocation', () => {
 
   it('rolls back deactivation if session cleanup fails', async () => {
     const user = await makeUser(`rollback-${suffix}@test.local`, 'journalist')
+    const loginResult = await login(user)
+    const before = await payload.findByID({
+      collection: 'users',
+      id: user.id,
+      overrideAccess: true,
+      showHiddenFields: true,
+    })
+    const originalSession = before.sessions?.[0]
+
+    expect(loginResult.token).toBeTruthy()
+    expect(originalSession).toBeDefined()
+    if (!originalSession) throw new Error('Expected login to create a session')
+
     const originalUpdate = payload.update.bind(payload)
     const updateSpy = vi.spyOn(payload, 'update')
     updateSpy.mockImplementationOnce(originalUpdate)
@@ -186,7 +199,10 @@ describe('Users authentication and session revocation', () => {
       collection: 'users',
       id: user.id,
       overrideAccess: true,
+      showHiddenFields: true,
     })
     expect(stored.active).toBe(true)
+    expect(stored.sessions?.some(({ id }) => id === originalSession.id)).toBe(true)
+    expect((await authenticate(loginResult.token!)).user?.id).toBe(user.id)
   })
 })
