@@ -1,11 +1,47 @@
-import type { CollectionBeforeValidateHook, CollectionConfig } from 'payload'
+import {
+  AuthenticationError,
+  type CollectionAfterChangeHook,
+  type CollectionBeforeLoginHook,
+  type CollectionBeforeValidateHook,
+  type CollectionConfig,
+} from 'payload'
 
 import { adminOrFirstUser, adminOrSelf, hasRole, isAdmin, isAdminField, noUsersYet } from '@/access'
+import type { User } from '@/payload-types'
 
 const firstUserBecomesAdmin: CollectionBeforeValidateHook = async ({ data, operation, req }) => {
   if (operation !== 'create') return data
   if (await noUsersYet(req)) return { ...data, role: 'admin', active: true }
   return data
+}
+
+const rejectInactiveLogin: CollectionBeforeLoginHook<User> = ({ req, user }) => {
+  if (user.active === false) {
+    throw new AuthenticationError(req.t)
+  }
+
+  return user
+}
+
+const revokeSessionsOnDeactivation: CollectionAfterChangeHook<User> = async ({
+  doc,
+  operation,
+  previousDoc,
+  req,
+}) => {
+  if (operation !== 'update' || previousDoc.active !== true || doc.active !== false) {
+    return doc
+  }
+
+  await req.payload.update({
+    collection: 'users',
+    id: doc.id,
+    data: { sessions: [] },
+    overrideAccess: true,
+    req,
+  })
+
+  return doc
 }
 
 export const Users: CollectionConfig = {
@@ -23,6 +59,8 @@ export const Users: CollectionConfig = {
     delete: isAdmin,
   },
   hooks: {
+    beforeLogin: [rejectInactiveLogin],
+    afterChange: [revokeSessionsOnDeactivation],
     beforeValidate: [firstUserBecomesAdmin],
   },
   fields: [
