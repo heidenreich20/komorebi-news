@@ -50,7 +50,12 @@ export const Users: CollectionConfig = {
     useAsTitle: 'email',
     defaultColumns: ['email', 'name', 'role', 'active'],
   },
-  auth: true,
+  auth: {
+    cookies: {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+    },
+  },
   access: {
     admin: ({ req }) => hasRole(req.user, 'admin', 'editor', 'journalist'),
     create: isAdmin,
