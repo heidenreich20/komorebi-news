@@ -5,6 +5,7 @@ import * as migration_20261030_035148_tags from './20261030_035148_tags';
 import * as migration_20261030_035731_media_metadata from './20261030_035731_media_metadata';
 import * as migration_20261030_041127_authors from './20261030_041127_authors';
 import * as migration_20261030_211826_articles from './20261030_211826_articles';
+import * as migration_20261104_223151_add_media_object_key from './20261104_223151_add_media_object_key';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20261030_211826_articles.up,
     down: migration_20261030_211826_articles.down,
-    name: '20261030_211826_articles'
+    name: '20261030_211826_articles',
+  },
+  {
+    up: migration_20261104_223151_add_media_object_key.up,
+    down: migration_20261104_223151_add_media_object_key.down,
+    name: '20261104_223151_add_media_object_key'
   },
 ];
