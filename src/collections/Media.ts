@@ -45,5 +45,19 @@ export const Media: CollectionConfig = {
         ],
       },
     },
+    // Keep the media schema stable when the optional S3/R2 storage plugin is disabled.
+    // The plugin replaces this field with its own equivalent when storage is enabled.
+    {
+      name: '_objectKey',
+      type: 'text',
+      admin: {
+        disableBulkEdit: true,
+        disableGroupBy: true,
+        disableListColumn: true,
+        disableListFilter: true,
+        hidden: true,
+        readOnly: true,
+      },
+    },
   ],
 }
