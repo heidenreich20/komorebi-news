@@ -11,12 +11,18 @@ export const guardArticleSlugRedirects: CollectionBeforeValidateHook<Article> = 
 }) => {
   if (!data) return data
 
+  // On updates, only an explicit slug change should be checked. A title edit
+  // does not implicitly replace an existing slug.
   const rawSlug =
-    typeof data.slug === 'string' && data.slug.trim()
-      ? data.slug
-      : typeof data.title === 'string'
-        ? data.title
-        : originalDoc?.slug
+    operation === 'create'
+      ? typeof data.slug === 'string' && data.slug.trim()
+        ? data.slug
+        : typeof data.title === 'string'
+          ? data.title
+          : undefined
+      : typeof data.slug === 'string' && data.slug.trim()
+        ? data.slug
+        : undefined
 
   if (typeof rawSlug !== 'string') return data
 
