@@ -11,6 +11,8 @@ import {
 import { slugField } from '@/fields/slug'
 import { enforceStatusTransitions } from '@/hooks/enforceStatusTransitions'
 import { enforcePublicationRules } from '@/hooks/enforcePublicationRules'
+import { guardArticleSlugRedirects } from '@/hooks/guardArticleSlugRedirects'
+import { createArticleSlugRedirect } from '@/hooks/createArticleSlugRedirect'
 
 export const publiclyVisible = (): Where => ({
   and: [
@@ -57,7 +59,8 @@ export const Articles: CollectionConfig = {
     readVersions: isAdminOrEditor,
   },
   hooks: {
-    beforeValidate: [enforceStatusTransitions, enforcePublicationRules],
+    beforeValidate: [enforceStatusTransitions, enforcePublicationRules, guardArticleSlugRedirects],
+    afterChange: [createArticleSlugRedirect],
     beforeOperation: [
       ({ operation, req }) => {
         if (operation === 'restoreVersion' && hasRole(req.user, 'journalist')) {
