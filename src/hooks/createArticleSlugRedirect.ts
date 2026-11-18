@@ -17,7 +17,9 @@ export const createArticleSlugRedirect: CollectionAfterChangeHook<Article> = asy
   req,
 }) => {
   if (operation !== 'update' || !previousDoc || previousDoc.slug === doc.slug) return doc
-  if (!wasPublic(previousDoc)) return doc
+  // Redirect only when the old URL was public and the new URL remains public.
+  // Archiving or unpublishing must not redirect readers to another unavailable page.
+  if (!wasPublic(previousDoc) || !wasPublic(doc)) return doc
 
   const fromPath = `/${previousDoc.slug}`
   const toPath = `/${doc.slug}`

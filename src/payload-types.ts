@@ -73,7 +73,6 @@ export interface Config {
     tags: Tag;
     authors: Author;
     articles: Article;
-    redirects: Redirect;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -87,7 +86,6 @@ export interface Config {
     tags: TagsSelect<false> | TagsSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
-    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -261,15 +259,6 @@ export interface Article {
   updatedAt: string;
   createdAt: string;
 }
-/** Redirect from an obsolete public article path to its current path. */
-export interface Redirect {
-  id: number;
-  fromPath: string;
-  toPath: string;
-  statusCode: '301' | '308';
-  updatedAt: string;
-  createdAt: string;
-}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
@@ -317,10 +306,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'articles';
         value: number | Article;
-      } | null)
-    | ({
-        relationTo: 'redirects';
-        value: number | Redirect;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -473,13 +458,6 @@ export interface ArticlesSelect<T extends boolean = true> {
   editorialStatus?: T;
   publishedAt?: T;
   createdBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-export interface RedirectsSelect<T extends boolean = true> {
-  fromPath?: T;
-  toPath?: T;
-  statusCode?: T;
   updatedAt?: T;
   createdAt?: T;
 }
