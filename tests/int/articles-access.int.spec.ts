@@ -136,6 +136,7 @@ describe('Articles', () => {
     payload = await getPayload({ config: await config })
     // Safe: vitest.setup.ts guarantees this is the throwaway test database.
     await cleanArticles()
+    await payload.delete({ collection: 'redirects', where: { id: { exists: true } } })
     await payload.delete({ collection: 'authors', where: { id: { exists: true } } })
     await payload.delete({ collection: 'categories', where: { id: { exists: true } } })
     await payload.delete({ collection: 'users', where: { id: { exists: true } } })
@@ -162,6 +163,7 @@ describe('Articles', () => {
   // Articles reference authors, so they must go before the other specs delete authors.
   afterAll(async () => {
     await cleanArticles()
+    await payload.delete({ collection: 'redirects', where: { id: { exists: true } } })
   })
 
   it('lets a journalist create an article: draft, owned by them, slug from the title', async () => {
@@ -375,4 +377,118 @@ describe('Articles', () => {
   it('does not allow deleting an author who still has articles', async () => {
     await expect(payload.delete({ collection: 'authors', id: author.id })).rejects.toThrow()
   })
+
+  it('creates a permanent redirect when a published article changes slug', async () => {
+    const article = await seed('Titulo original', { editorialStatus: 'published' })
+    const updated = await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { slug: 'titulo-actualizado' },
+      user: editor,
+      overrideAccess: false,
+      depth: 0,
+    })
+
+    expect(updated.slug).toBe('titulo-actualizado')
+    const redirect = await payload.find({
+      collection: 'redirects',
+      where: { fromPath: { equals: '/titulo-original' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(redirect.docs[0]).toMatchObject({
+      fromPath: '/titulo-original',
+      toPath: '/titulo-actualizado',
+      statusCode: '308',
+    })
+  })
+
+  it('updates older redirects directly to the latest slug without a chain', async () => {
+    const article = await seed('Primer titulo', { editorialStatus: 'published' })
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { slug: 'segundo-titulo' },
+      user: editor,
+      overrideAccess: false,
+    })
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { slug: 'tercer-titulo' },
+      user: editor,
+      overrideAccess: false,
+    })
+
+    const redirects = await payload.find({
+      collection: 'redirects',
+      where: {
+        fromPath: { in: ['/primer-titulo', '/segundo-titulo'] },
+      },
+      limit: 10,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(redirects.docs).toHaveLength(2)
+    expect(redirects.docs.map(({ fromPath, toPath }) => [fromPath, toPath])).toEqual(
+      expect.arrayContaining([
+        ['/primer-titulo', '/tercer-titulo'],
+        ['/segundo-titulo', '/tercer-titulo'],
+      ]),
+    )
+  })
+
+  it('does not create redirects for draft slug changes or title-only edits', async () => {
+    const draft = await seed('Borrador original')
+    await payload.update({
+      collection: 'articles',
+      id: draft.id,
+      data: { title: 'Titulo editado sin cambiar slug' },
+      user: editor,
+      overrideAccess: false,
+    })
+    await payload.update({
+      collection: 'articles',
+      id: draft.id,
+      data: { slug: 'slug-de-borrador-nuevo' },
+      user: editor,
+      overrideAccess: false,
+    })
+
+    const redirects = await payload.find({
+      collection: 'redirects',
+      where: {
+        fromPath: { in: ['/borrador-original', '/slug-de-borrador-nuevo'] },
+      },
+      limit: 10,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(redirects.totalDocs).toBe(0)
+  })
+
+  it('prevents reusing a path reserved by a previous article slug', async () => {
+    const article = await seed('Ruta inicial', { editorialStatus: 'published' })
+    await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { slug: 'ruta-nueva' },
+      user: editor,
+      overrideAccess: false,
+    })
+
+    const other = await seed('Otro articulo')
+    await expect(
+      payload.update({
+        collection: 'articles',
+        id: other.id,
+        data: { slug: 'ruta-inicial' },
+        user: editor,
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow(/reservado/)
+  })
+
+
 })
