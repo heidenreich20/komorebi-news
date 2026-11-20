@@ -52,7 +52,7 @@ export default buildConfig({
               generateFileURL: ({ filename, prefix }) => {
                 const key = prefix ? `${prefix}/${filename}` : filename
                 const encodedKey = key.split('/').map(encodeURIComponent).join('/')
-                return `${r2.publicUrl.replace(/\\/+$/, '')}/${encodedKey}`
+                return `${r2.publicUrl.replace(/\/+$/, '')}/${encodedKey}`
               },
             },
           },
