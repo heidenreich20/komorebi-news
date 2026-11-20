@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { validateRedirectPaths } from '@/hooks/validateRedirectPaths'
+
 import { isAdminOrEditor } from '@/access'
 
 const rootArticlePath = (value: unknown): true | string => {
@@ -22,6 +24,9 @@ export const Redirects: CollectionConfig = {
     create: isAdminOrEditor,
     update: isAdminOrEditor,
     delete: isAdminOrEditor,
+  },
+  hooks: {
+    beforeValidate: [validateRedirectPaths],
   },
   fields: [
     {
