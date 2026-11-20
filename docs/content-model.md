@@ -45,7 +45,7 @@ relationship to Categories; one or more according to product policy. -
 `tags` --- optional relationship to Tags, has-many. - `editorialStatus`
 --- enum: `draft`, `in_review`, `scheduled`, `published`, `rejected`,
 `archived`; coordinate carefully with Payload's own draft/version
-mechanics. - `publishedAt` --- date/time; required when published. -
+mechanics. - `publishedAt` --- date/time; required when published. - `seoTitle` / `seoDescription` --- optional search metadata with title/excerpt fallbacks. - `isFeatured` --- editor-managed homepage feature flag. - `updatedAtEditorial` --- server-managed timestamp for substantive editorial changes. - `correctionNote` --- optional public correction note, maintained by editors. -
 `updatedAtEditorial` --- optional public correction/update timestamp if
 distinct from system update time. - `seoTitle` --- optional; fall back
 to title. - `seoDescription` --- optional; fall back to excerpt. -

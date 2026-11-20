@@ -13,6 +13,7 @@ import { enforceStatusTransitions } from '@/hooks/enforceStatusTransitions'
 import { enforcePublicationRules } from '@/hooks/enforcePublicationRules'
 import { guardArticleSlugRedirects } from '@/hooks/guardArticleSlugRedirects'
 import { createArticleSlugRedirect } from '@/hooks/createArticleSlugRedirect'
+import { stampEditorialUpdate } from '@/hooks/stampEditorialUpdate'
 
 export const publiclyVisible = (): Where => ({
   and: [
@@ -60,6 +61,7 @@ export const Articles: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [enforceStatusTransitions, enforcePublicationRules, guardArticleSlugRedirects],
+    beforeChange: [stampEditorialUpdate],
     afterChange: [createArticleSlugRedirect],
     beforeOperation: [
       ({ operation, req }) => {
@@ -72,8 +74,41 @@ export const Articles: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', required: true },
     slugField('title'),
-    { name: 'excerpt', type: 'textarea' },
+    { name: 'excerpt', type: 'textarea', maxLength: 300 },
     { name: 'body', type: 'richText' },
+    {
+      name: 'seoTitle',
+      type: 'text',
+      maxLength: 70,
+      access: { create: isStaffField, update: isStaffField },
+      admin: { description: 'Título para buscadores. Si queda vacío, se usa el título del artículo.' },
+    },
+    {
+      name: 'seoDescription',
+      type: 'textarea',
+      maxLength: 160,
+      access: { create: isStaffField, update: isStaffField },
+      admin: { description: 'Descripción para buscadores. Si queda vacía, se usa el resumen.' },
+    },
+    {
+      name: 'isFeatured',
+      type: 'checkbox',
+      defaultValue: false,
+      access: { create: isAdminOrEditorField, update: isAdminOrEditorField },
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'updatedAtEditorial',
+      type: 'date',
+      admin: { position: 'sidebar', readOnly: true },
+    },
+    {
+      name: 'correctionNote',
+      type: 'textarea',
+      maxLength: 1000,
+      access: { create: isAdminOrEditorField, update: isAdminOrEditorField },
+      admin: { description: 'Nota pública de corrección; se muestra junto al artículo.' },
+    },
     { name: 'featuredImage', type: 'upload', relationTo: 'media' },
     {
       name: 'categories',
