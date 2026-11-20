@@ -24,37 +24,27 @@ export const validateRedirectPaths: CollectionBeforeValidateHook<Redirect> = asy
   // A redirect must never point to another redirect (chain), or create a cycle.
   const targetIsRedirect = await req.payload.find({
     collection: 'redirects',
-    where: {
-      and: [
-        { fromPath: { equals: toPath } },
-        ...(originalDoc ? [{ id: { not_equals: originalDoc.id } }] : []),
-      ],
-    },
+    where: { fromPath: { equals: toPath } },
     limit: 1,
     depth: 0,
     overrideAccess: true,
     req,
   })
 
-  if (targetIsRedirect.totalDocs > 0) {
+  if (targetIsRedirect.docs.some(({ id }) => id !== originalDoc?.id)) {
     fail('El destino ya es una URL redirigida. Apuntá directamente al artículo final.')
   }
 
   const sourceHasIncomingRedirects = await req.payload.find({
     collection: 'redirects',
-    where: {
-      and: [
-        { toPath: { equals: fromPath } },
-        ...(originalDoc ? [{ id: { not_equals: originalDoc.id } }] : []),
-      ],
-    },
+    where: { toPath: { equals: fromPath } },
     limit: 1,
     depth: 0,
     overrideAccess: true,
     req,
   })
 
-  if (sourceHasIncomingRedirects.totalDocs > 0) {
+  if (sourceHasIncomingRedirects.docs.some(({ id }) => id !== originalDoc?.id)) {
     fail('Esta URL ya es destino de otro redirect. Actualizá primero los redirects anteriores.')
   }
 
