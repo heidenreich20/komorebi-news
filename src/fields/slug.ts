@@ -12,7 +12,12 @@ export const formatSlug = (value: string): string =>
 // Builds the slug from a source field when none is given; always normalizes what is stored.
 const slugFromSource =
   (sourceField: string): FieldHook =>
-  ({ value, data }) => {
+  ({ value, data, operation, previousValue }) => {
+    // Editing an article's title must not silently change its established URL.
+    if (operation === 'update' && (value === undefined || value === null || value === '')) {
+      return previousValue
+    }
+
     const raw = typeof value === 'string' && value.trim() ? value : data?.[sourceField]
     return typeof raw === 'string' ? formatSlug(raw) : value
   }

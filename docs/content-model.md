@@ -11,17 +11,20 @@
 -   Enforce constraints and permissions server-side.
 -   Pin compatible Payload/Next.js versions before implementation and
     follow documentation for that exact version.
+-   Public article URLs use the root-level pattern `/{slug}`, for
+    example `/elecciones-presidenciales-2027`. Category and fixed
+    application routes must reserve their slugs to avoid collisions.
 
 ## Collection: Users
 
 Use Payload's authentication-enabled collection.
 
 Suggested fields: - `name` --- required display name. - `role` ---
-required enum: `admin`, `editor`, `journalist`. - `active` --- boolean,
-default true; inactive users must not be able to perform CMS actions. -
-`authorProfile` --- optional relationship to Authors, if staff
-authorship needs to be linked to a login. - `lastLoginAt` --- optional
-if maintained reliably and needed.
+required enum: `admin`, `editor`, `journalist`. - `active` ---
+boolean, default true; inactive users must not be able to perform CMS
+actions. - `authorProfile` --- optional relationship to Authors, if
+staff authorship needs to be linked to a login. - `lastLoginAt` ---
+optional if maintained reliably and needed.
 
 Security notes: - Do not return password hashes, reset tokens, or
 private account fields through public APIs. - Role changes are
@@ -57,9 +60,12 @@ content and publication time \<= now. - Draft previews require
 authentication and a secure preview flow. - Never rely only on hiding an
 article in the frontend. - If an article is unpublished, its former URL
 should not accidentally expose draft content. - A published slug change
-should create a redirect from the previous slug. - Set `publishedAt`
-consistently; do not overwrite the original publication date on every
-edit. Use a separate update/correction timestamp if needed.
+must create a permanent redirect from the previous root-level path to
+the new path. Existing redirects must be updated to point directly to
+the newest path, avoiding redirect chains. Previous article paths remain
+reserved and cannot be reused by a different article. - Set
+`publishedAt` consistently; do not overwrite the original publication
+date on every edit. Use a separate update/correction timestamp if needed.
 
 ## Collection: Categories
 
@@ -105,13 +111,19 @@ client-supplied MIME type. - Restrict SVG uploads unless a safe
 sanitization and delivery policy is implemented. - Do not store uploaded
 binaries on ephemeral production disk.
 
-## Optional collection: Redirects
+## Collection: Redirects
 
-Recommended if editorial slug changes are allowed: - `fromPath` ---
-required, unique. - `toPath` --- required. - `statusCode` --- restrict
-to 301 or 308 for permanent redirects unless a different policy is
-justified. - prevent loops and redirect chains where possible. - Only
-administrators/editors may manage redirects.
+Required for stable public article URLs. The collection stores
+root-level paths, not full URLs:
+
+- `fromPath` --- required, unique, for example `/old-article-title`.
+- `toPath` --- required, for example `/new-article-title`.
+- `statusCode` --- permanent redirect, either 301 or 308.
+- Only administrators and editors may read or manage redirect records.
+- Redirect sources remain reserved so a later article cannot take over
+  an old URL.
+- When a published article changes slug, create a redirect and update
+  older redirects to point directly to the latest path.
 
 ## Relationships and indexes
 
