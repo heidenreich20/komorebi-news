@@ -257,6 +257,11 @@ export interface Article {
   author: number | Author;
   editorialStatus: 'draft' | 'in_review' | 'scheduled' | 'published' | 'rejected' | 'archived';
   publishedAt?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  isFeatured?: boolean | null;
+  updatedAtEditorial?: string | null;
+  correctionNote?: string | null;
   createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -472,6 +477,11 @@ export interface ArticlesSelect<T extends boolean = true> {
   author?: T;
   editorialStatus?: T;
   publishedAt?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  isFeatured?: T;
+  updatedAtEditorial?: T;
+  correctionNote?: T;
   createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
