@@ -515,4 +515,39 @@ describe('Articles', () => {
   })
 
 
+
+  it('rejects redirect chains and self-referential redirects', async () => {
+    const target = await seed('Destino definitivo', { editorialStatus: 'published' })
+
+    await payload.create({
+      collection: 'redirects',
+      data: {
+        fromPath: '/ruta-anterior',
+        toPath: `/${target.slug}`,
+        statusCode: '308',
+      },
+      user: editor,
+      overrideAccess: false,
+    })
+
+    await expect(
+      payload.create({
+        collection: 'redirects',
+        data: { fromPath: '/otra-ruta', toPath: '/ruta-anterior', statusCode: '308' },
+        user: editor,
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow(/redirigida/)
+
+    await expect(
+      payload.create({
+        collection: 'redirects',
+        data: { fromPath: '/misma-ruta', toPath: '/misma-ruta', statusCode: '308' },
+        user: editor,
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow(/no pueden ser iguales/)
+  })
+
+
 })

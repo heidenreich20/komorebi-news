@@ -13,7 +13,8 @@ export const validateRedirectPaths: CollectionBeforeValidateHook<Redirect> = asy
 }) => {
   if (!data) return data
 
-  const { fromPath, toPath } = data
+  const fromPath = data.fromPath ?? originalDoc?.fromPath
+  const toPath = data.toPath ?? originalDoc?.toPath
   if (typeof fromPath !== 'string' || typeof toPath !== 'string') return data
 
   if (fromPath === toPath) {
