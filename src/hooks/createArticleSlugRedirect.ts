@@ -17,7 +17,7 @@ export const createArticleSlugRedirect: CollectionAfterChangeHook<Article> = asy
   req,
 }) => {
   if (operation !== 'update' || !previousDoc || previousDoc.slug === doc.slug) return doc
-  if (!wasPublic(previousDoc)) return doc
+  if (!wasPublic(previousDoc) || !wasPublic(doc)) return doc
 
   const fromPath = `/${previousDoc.slug}`
   const toPath = `/${doc.slug}`

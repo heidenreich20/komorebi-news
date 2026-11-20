@@ -491,4 +491,28 @@ describe('Articles', () => {
   })
 
 
+
+  it('keeps the existing public slug when a published article title changes', async () => {
+    const article = await seed('Titulo antes del cambio', { editorialStatus: 'published' })
+    const updated = await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { title: 'Titulo despues del cambio' },
+      user: editor,
+      overrideAccess: false,
+      depth: 0,
+    })
+
+    expect(updated.slug).toBe('titulo-antes-del-cambio')
+    const redirects = await payload.find({
+      collection: 'redirects',
+      where: { fromPath: { equals: '/titulo-antes-del-cambio' } },
+      limit: 10,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(redirects.totalDocs).toBe(0)
+  })
+
+
 })

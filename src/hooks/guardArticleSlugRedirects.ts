@@ -5,25 +5,28 @@ import type { Article } from '@/payload-types'
 
 export const guardArticleSlugRedirects: CollectionBeforeValidateHook<Article> = async ({
   data,
-  originalDoc,
   operation,
   req,
 }) => {
   if (!data) return data
 
+  // The slug field generates a value from the title on creation. On updates,
+  // only an explicitly submitted slug can change the public URL.
   const rawSlug =
-    typeof data.slug === 'string' && data.slug.trim()
-      ? data.slug
-      : typeof data.title === 'string'
-        ? data.title
-        : originalDoc?.slug
+    operation === 'create'
+      ? typeof data.slug === 'string' && data.slug.trim()
+        ? data.slug
+        : typeof data.title === 'string'
+          ? data.title
+          : undefined
+      : typeof data.slug === 'string' && data.slug.trim()
+        ? data.slug
+        : undefined
 
   if (typeof rawSlug !== 'string') return data
 
   const candidateSlug = formatSlug(rawSlug)
-  if (!candidateSlug || (operation === 'update' && candidateSlug === originalDoc?.slug)) {
-    return data
-  }
+  if (!candidateSlug) return data
 
   const existingRedirect = await req.payload.find({
     collection: 'redirects',
