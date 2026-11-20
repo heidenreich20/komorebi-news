@@ -23,3 +23,17 @@ pnpm dev
 Open `http://localhost:3000/admin` and create the first user.
 
 Useful checks: `pnpm lint`, `pnpm typecheck`, `pnpm build`.
+
+## Sample development content
+
+To populate a **development database** with clearly fictional draft articles,
+categories, tags, and an author:
+
+```bash
+pnpm seed:sample
+```
+
+The command is intentionally restricted to `NODE_ENV=development` and
+`SEED_SAMPLE_DATA=true`. It only creates missing records; it does not
+publish articles, create users, overwrite existing content, or delete data.
+Make sure your local `.env` points to a development database before running it.
