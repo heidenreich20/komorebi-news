@@ -66,8 +66,18 @@ const lexicalBody = (text: string) => ({
 })
 
 async function main() {
-  if (process.env.NODE_ENV !== 'development' || process.env.SEED_SAMPLE_DATA !== 'true') {
-    throw new Error('Sample seeding is allowed only with NODE_ENV=development and SEED_SAMPLE_DATA=true.')
+  const databaseURL = new URL(process.env.DATABASE_URL ?? '')
+  const confirmedHost = process.env.SEED_SAMPLE_DATABASE_HOST
+
+  if (
+    process.env.NODE_ENV !== 'development' ||
+    process.env.SEED_SAMPLE_DATA !== 'true' ||
+    !confirmedHost ||
+    confirmedHost !== databaseURL.hostname
+  ) {
+    throw new Error(
+      'Sample seeding requires NODE_ENV=development, SEED_SAMPLE_DATA=true, and SEED_SAMPLE_DATABASE_HOST matching DATABASE_URL.',
+    )
   }
 
   const payload = await getPayload({ config: await config })

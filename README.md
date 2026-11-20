@@ -33,7 +33,15 @@ categories, tags, and an author:
 pnpm seed:sample
 ```
 
-The command is intentionally restricted to `NODE_ENV=development` and
-`SEED_SAMPLE_DATA=true`. It only creates missing records; it does not
-publish articles, create users, overwrite existing content, or delete data.
-Make sure your local `.env` points to a development database before running it.
+Before running it, add these two values to your local `.env`:
+
+```dotenv
+SEED_SAMPLE_DATA=true
+SEED_SAMPLE_DATABASE_HOST=your-development-database-host
+```
+
+The script checks that the confirmed host exactly matches `DATABASE_URL` and
+requires `NODE_ENV=development`. The command does not enable sample seeding
+by itself. It only creates missing records; it does not publish articles,
+create users, overwrite existing content, or delete data. Never use a
+production database for sample seeding.
