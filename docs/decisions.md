@@ -42,6 +42,11 @@
   D-010             Stable public     Approved          Slug changes after
                     article URLs                        publication require
                                                         redirect handling
+
+  D-011             Root-level        Approved          Public article URLs use
+                    article URLs                        /{slug}; redirects store
+                                                        complete root-relative
+                                                        paths
   ----------------------------------------------------------------------------
 
 ## Open questions --- do not silently decide
