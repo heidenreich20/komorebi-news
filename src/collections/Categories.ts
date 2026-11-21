@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { hasRole, isAdmin, isAdminOrEditor } from '@/access'
 import { slugField } from '@/fields/slug'
+import { guardCategorySlugRoutes } from '@/hooks/guardCategorySlugRoutes'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -16,6 +17,7 @@ export const Categories: CollectionConfig = {
     update: isAdminOrEditor,
     delete: isAdmin,
   },
+  hooks: { beforeValidate: [guardCategorySlugRoutes] },
   fields: [
     { name: 'name', type: 'text', required: true },
     slugField('name'),

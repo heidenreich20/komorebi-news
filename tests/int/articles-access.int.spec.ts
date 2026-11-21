@@ -550,4 +550,23 @@ describe('Articles', () => {
   })
 
 
+
+  it('reserves fixed site routes and category slugs from article URLs', async () => {
+    await expect(make(editor, 'Admin')).rejects.toThrow(/reservado/)
+    await expect(make(editor, 'K-pop')).rejects.toThrow(/categoría/)
+  })
+
+  it('prevents a category from taking an existing article URL', async () => {
+    await make(editor, 'Ruta de categoria')
+    await expect(
+      payload.create({
+        collection: 'categories',
+        data: { name: 'Ruta de categoria', slug: '' },
+        user: editor,
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow(/artículo/)
+  })
+
+
 })
