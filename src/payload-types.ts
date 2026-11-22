@@ -261,7 +261,12 @@ export interface Article {
   updatedAt: string;
   createdAt: string;
 }
-/** Permanent redirect for an obsolete public article path. */
+/**
+ * Permanent redirects for previously published article URLs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
 export interface Redirect {
   id: number;
   fromPath: string;
@@ -476,6 +481,10 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
 }
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
 export interface RedirectsSelect<T extends boolean = true> {
   fromPath?: T;
   toPath?: T;
