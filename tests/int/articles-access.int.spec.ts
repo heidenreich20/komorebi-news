@@ -550,4 +550,39 @@ describe('Articles', () => {
   })
 
 
+
+  it('maintains a server-controlled editorial update timestamp', async () => {
+    const article = await seed('Nota con fecha editorial')
+    const forgedTimestamp = '2000-01-01T00:00:00.000Z'
+    const updated = await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { excerpt: 'Resumen actualizado', updatedAtEditorial: forgedTimestamp },
+      user: editor,
+      overrideAccess: false,
+      depth: 0,
+    })
+
+    expect(updated.updatedAtEditorial).toBeTruthy()
+    expect(updated.updatedAtEditorial).not.toBe(forgedTimestamp)
+  })
+
+  it('lets journalists edit SEO metadata on their own drafts but not editor-only fields', async () => {
+    const article = await make(journalist, 'Borrador con SEO')
+    const updated = await payload.update({
+      collection: 'articles',
+      id: article.id,
+      data: { seoTitle: 'Título SEO', seoDescription: 'Descripción SEO', isFeatured: true, correctionNote: 'Corrección' },
+      user: journalist,
+      overrideAccess: false,
+      depth: 0,
+    })
+
+    expect(updated.seoTitle).toBe('Título SEO')
+    expect(updated.seoDescription).toBe('Descripción SEO')
+    expect(updated.isFeatured).toBe(false)
+    expect(updated.correctionNote ?? null).toBeNull()
+  })
+
+
 })
